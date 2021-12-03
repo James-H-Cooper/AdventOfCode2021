@@ -1,11 +1,3 @@
--- FOR EACH LINE OF THE INPUT
--- HAVE A TABLE THAT MAPS NUMERICAL POSITION WITH THE BIT 
--- SO INPUT_TABLE[1] IS A TABLE OF ALL THE BITS IN THE FIRST POSITION 
-
--- ONCE WE HAVE THIS, ITERATE THROUGH EACH SUB TABLE TO FIND THE BITS FOR THE GAMMA (AS A STRING)
--- FLIP THAT AND STORE IT AS THE EPSILON 
--- USE tonumber() to get the actual values 
-
 local function create_table_from_input(file_name)
    --Covnert each binary string into a row of bits within the table
    local outside_table = {} 
@@ -17,20 +9,24 @@ local function create_table_from_input(file_name)
       table.insert(outside_table, inside_table)
    end
 
-   --Get the number of bits in each line (asusming all lines are the same length)
-   local input_length = #outside_table[1]
-   local output_table = {}
+   return outside_table
+end
 
-   for i=1, input_length do
-      -- For each bit we want to create a row in bit_table containing the binary value at that space
-      local bit_table = {}
-      for k, inner_table in ipairs(outside_table) do
-         table.insert(bit_table,k,inner_table[i])
+local function create_bit_table_from_input_table(input_table)
+      --Get the number of bits in each line (asusming all lines are the same length)
+      local input_length = #input_table[1]
+      local output_table = {}
+   
+      for i=1, input_length do
+         -- For each bit we want to create a row in bit_table containing the binary value at that space
+         local bit_table = {}
+         for k, inner_table in ipairs(input_table) do
+            table.insert(bit_table,k,inner_table[i])
+         end
+         table.insert(output_table,i,bit_table)
       end
-      table.insert(output_table,i,bit_table)
-   end
-
-   return output_table
+   
+      return output_table
 end
 
 local function get_most_common_bit(bit_table)
@@ -46,7 +42,8 @@ local function get_most_common_bit(bit_table)
    end
 
    if(zero_count == one_count) then
-      print("Invalid input: there is no definite most common value for this bit")
+      print("There is no definite most common value for this bit, returning 1 as per part 2")
+      return "1"
    end
 
    if(zero_count > one_count) then
@@ -58,7 +55,8 @@ local function get_most_common_bit(bit_table)
 end
 
 local function part_one(file_name)
-   local bit_table = create_table_from_input(file_name)
+   local input_table = create_table_from_input(file_name)
+   local bit_table = create_bit_table_from_input_table(input_table)
    local gamma_bits = {}
 
    for i, inner_table in ipairs(bit_table) do
@@ -87,9 +85,87 @@ local function part_one(file_name)
    print("Result = " .. result)
 end
 
+
+local function get_least_common_bit(bit_table)
+   local most_common = get_most_common_bit(bit_table)
+   if(most_common == "1") then
+      return "0"
+   else
+      return "1"
+   end
+end
+
+local function remove_entires_without_bit_at_pos(input_table,bit_table,bit_to_keep,current_bit)
+   -- iterate back to front so we can remove entries in place
+   for i=#input_table, 1, -1 do
+      if(input_table[i][current_bit] ~= bit_to_keep) then
+         table.remove(input_table,i)
+
+         -- remove the corresponding row from the bit table
+         for _,bits in ipairs(bit_table) do
+            table.remove(bits,i)
+         end
+      end
+   end
+
+   return input_table, bit_table
+end
+
+local function calculate_rating_based_on_criteria(file_name, is_oxygen)
+   -- We should really take in the tables not the file and make a clone of them. 
+   -- Since this isn't a real project it's easier to just reconstruct them
+   local input_table = create_table_from_input(file_name)
+   local bit_table = create_bit_table_from_input_table(input_table)
+
+   local current_bit = 1
+   -- While we don't have a single answer, keep looping
+   while #input_table > 1 do
+      if(current_bit > #input_table[1] ) then
+         print("ERROR: More than 1 entry left after checking all bits, returning early.")
+         return
+      end
+
+      local bit_to_keep = -1
+
+      if is_oxygen then
+         bit_to_keep = get_most_common_bit(bit_table[current_bit])
+      else
+         bit_to_keep = get_least_common_bit(bit_table[current_bit])
+      end
+      input_table, bit_table = remove_entires_without_bit_at_pos(input_table,bit_table,bit_to_keep,current_bit)
+
+      current_bit = current_bit + 1
+   end
+
+   local binary = table.concat(input_table[1])
+   local denery = tonumber(binary,2)
+
+   return binary,denery
+end
+
+local function part_two(file_name)
+
+   local oxygen_binary, oxygen_denery = calculate_rating_based_on_criteria(file_name,true)
+   local carbon_binary, carbon_denery = calculate_rating_based_on_criteria(file_name,false)
+
+   local result = carbon_denery * oxygen_denery
+
+   print("Oxygen binary = " .. oxygen_binary .. " Oxygen denary = " .. oxygen_denery)
+   print("Carbon binary = " .. carbon_binary .. " Carbon denary = " .. carbon_denery)
+   print("Result = " .. result)
+end
+
 print("Sample Part 1")
 part_one("sample.txt")
 
 print("-------------------------")
 print("Input Part 1")
 part_one("input.txt")
+
+print("-------------------------")
+print("Sample Part 2")
+part_two("sample.txt")
+
+print("-------------------------")
+print("Input Part 2")
+part_two("input.txt")
