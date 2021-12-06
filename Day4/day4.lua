@@ -58,31 +58,51 @@ local function calculate_score(board)
 end
 
 -- Return 0 if no win, otherwise return score
-local function have_any_boards_won(boards)
-   for _,board in ipairs(boards) do
+local function have_any_boards_won(boards, is_looking_for_last)
+   local boards_to_remove = {}
+   for i,board in ipairs(boards) do
       local columns_marked = {}
       local first_row = true
+      local ignore_column_for_removal = false
       for _,row in ipairs(board) do
          local is_row_marked = true
-         for i, digit in ipairs(row) do
+         for k, digit in ipairs(row) do
             if first_row then
-               table.insert(columns_marked,i,true)
+               table.insert(columns_marked,k,true)
             end
             if(digit ~= "marked") then
                is_row_marked = false;
-               columns_marked[i] = false
+               columns_marked[k] = false
             end
          end
          if is_row_marked then
-            return calculate_score(board)
+            if not is_looking_for_last or #boards == 1 then
+               return calculate_score(board)
+            else
+               table.insert(boards_to_remove,i)
+               -- Quick an dirty hack to stop duplicate rows being added, just store a flag
+               ignore_column_for_removal= true
+            end
          end
          first_row = false
       end
 
       for _,column in ipairs(columns_marked) do
          if column == true then
-            return calculate_score(board)
+            if not is_looking_for_last or #boards == 1 then
+               return calculate_score(board)
+            else
+               if not ignore_column_for_removal then
+                  table.insert(boards_to_remove,i)
+               end
+            end
          end
+      end
+   end
+
+   if is_looking_for_last then
+      for i=#boards_to_remove, 1, -1 do
+         table.remove(boards,boards_to_remove[i])
       end
    end
 
@@ -102,12 +122,12 @@ local function mark_number_on_boards(number,boards)
    end
 end
 
-local function part_one(file_name)
+local function solution(file_name, is_part_two)
    local random_numbers, boards = read_input_from_file(file_name)
 
    for _,number in ipairs(random_numbers) do
       mark_number_on_boards(number,boards)
-      local winner_score = have_any_boards_won(boards)
+      local winner_score = have_any_boards_won(boards, is_part_two)
       if winner_score ~= 0 then
          local final_score = winner_score * number
          print("A board has won, board score = " .. winner_score .. " * number = " .. number .. " final score = " .. final_score)
@@ -119,8 +139,16 @@ local function part_one(file_name)
 end
 
 print("Sample Part 1")
-part_one("sample.txt")
+solution("sample.txt",false)
 
 print("-------------------------")
 print("Input Part 1")
-part_one("input.txt")
+solution("input.txt",false)
+
+print("-------------------------")
+print("Sample Part 2")
+solution("sample.txt",true)
+
+print("-------------------------")
+print("Input Part 2")
+solution("input.txt",true)
