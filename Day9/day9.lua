@@ -100,7 +100,7 @@ local function find_basin_size(point_list, row_index, column_index)
    -- Iterate through point list, finding which basin each point belongs to. 
    for i,row in ipairs(point_list) do
       for k,point in ipairs(row) do
-         nearest_basin_row, nearest_basin_column = find_nearest_basin(point_list,i,k,point)
+         local nearest_basin_row, nearest_basin_column = find_nearest_basin(point_list,i,k,point)
          if nearest_basin_column == column_index and nearest_basin_row == row_index then
             basin_size = basin_size + 1 
          end
